@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mileage Tool</title>
+    <style>
+        body { font-family: sans-serif; text-align: center; padding: 20px; background: #f4f4f4; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 350px; margin: auto; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; }
+        button { width: 100%; padding: 15px; margin: 10px 0; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; cursor: pointer; }
+        #startBtn { background: #28a745; color: white; }
+        #endBtn { background: #dc3545; color: white; }
+        #result { background: #e9ecef; padding: 15px; margin-top: 20px; border-radius: 10px; display: none; text-align: left; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Mileage Helper</h2>
+    <input type="text" id="resName" placeholder="Resident Name">
+    <input type="text" id="fromLoc" placeholder="From (e.g. House)">
+    <input type="text" id="toLoc" placeholder="To (e.g. Shop)">
+
+    <button id="startBtn" onclick="startTrip()">START TRIP</button>
+    <button id="endBtn" onclick="endTrip()" style="display:none;">STOP & LOG</button>
+
+    <div id="result">
+        <div id="out"></div>
+        <button onclick="copyData()" style="background:#007bff; color:white; margin-top:10px;">Copy Results</button>
+        <button onclick="location.reload()" style="background:none; color:#666; text-decoration:underline;">Start New Journey</button>
+    </div>
+    <p id="status" style="font-size: 12px; color: #666;">Ready</p>
+</div>
+
+<script>
+    let startPos = null;
+    let startTime = null;
+
+    function startTrip() {
+        if (!document.getElementById('resName').value) return alert("Please enter a name");
+        
+        document.getElementById('status').innerText = "Requesting GPS...";
+        
+        navigator.geolocation.getCurrentPosition((pos) => {
+            startPos = pos.coords;
+            startTime = new Date().toLocaleTimeString();
+            document.getElementById('startBtn').style.display = "none";
+            document.getElementById('endBtn').style.display = "block";
+            document.getElementById('status').innerText = "Tracking trip...";
+        }, (err) => {
+            alert("GPS Error: Please allow location access in your browser settings!");
+            document.getElementById('status').innerText = "Error: GPS Blocked";
+        });
+    }
+
+    function endTrip() {
+        navigator.geolocation.getCurrentPosition((pos) => {
+            const miles = calc(startPos.latitude, startPos.longitude, pos.coords.latitude, pos.coords.longitude);
+            const endTime = new Date().toLocaleTimeString();
+            
+            document.getElementById('result').style.display = "block";
+            document.getElementById('endBtn').style.display = "none";
+            document.getElementById('status').innerText = "Finished";
+            
+            document.getElementById('out').innerHTML = 
+                "<strong>Trip Log:</strong><br>" +
+                "Resident: " + document.getElementById('resName').value + "<br>" +
+                "Route: " + document.getElementById('fromLoc').value + " to " + document.getElementById('toLoc').value + "<br>" +
+                "Distance: " + miles.toFixed(2) + " miles<br>" +
+                "Time: " + startTime + " - " + endTime;
+        });
+    }
+
+    function calc(lat1, lon1, lat2, lon2) {
+        const R = 3958.8;
+        const dLat = (lat2-lat1)*Math.PI/180;
+        const dLon = (lon2-lon1)*Math.PI/180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    }
+
+    function copyData() {
+        navigator.clipboard.writeText(document.getElementById('out').innerText);
+        alert("Copied!");
+    }
+</script>
+
+</body>
+</html>
